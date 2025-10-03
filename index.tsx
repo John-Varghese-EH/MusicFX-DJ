@@ -11,7 +11,8 @@ import { ToastMessage } from './components/ToastMessage';
 import { LiveMusicHelper } from './utils/LiveMusicHelper';
 import { AudioAnalyser } from './utils/AudioAnalyser';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY, apiVersion: 'v1alpha' });
+// Corrected GoogleGenAI initialization to use process.env.API_KEY and removed apiVersion.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const model = 'lyria-realtime-exp';
 
 function main() {
@@ -62,10 +63,11 @@ function main() {
   liveMusicHelper.addEventListener('error', errorToast);
   pdjMidi.addEventListener('error', errorToast);
 
-  audioAnalyser.addEventListener('audio-level-changed', ((e: Event) => {
-    const customEvent = e as CustomEvent<number>;
-    const level = customEvent.detail;
+  audioAnalyser.addEventListener('audio-data-changed', ((e: Event) => {
+    const customEvent = e as CustomEvent<{ level: number, frequencyData: Uint8Array }>;
+    const { level, frequencyData } = customEvent.detail;
     pdjMidi.audioLevel = level;
+    pdjMidi.frequencyData = frequencyData;
   }));
 
 }

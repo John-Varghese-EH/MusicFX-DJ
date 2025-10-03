@@ -10,6 +10,7 @@ import { throttle } from '../utils/throttle';
 
 import './PromptController';
 import './PlayPauseButton';
+import './AudioVisualizer';
 import type { PlaybackState, Prompt } from '../types';
 import { MidiDispatcher } from '../utils/MidiDispatcher';
 
@@ -40,14 +41,28 @@ export class PromptDjMidi extends LitElement {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 2.5vmin;
-      margin-top: 8vmin;
+      margin-top: 4vmin;
     }
     prompt-controller {
       width: 100%;
     }
-    play-pause-button {
+    #visualizer-container {
       position: relative;
+      width: 20vmin;
+      height: 20vmin;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    audio-visualizer {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+    play-pause-button {
+      position: absolute;
       width: 15vmin;
+      z-index: 10;
     }
     #buttons {
       position: absolute;
@@ -91,8 +106,10 @@ export class PromptDjMidi extends LitElement {
   @property({ type: Boolean }) private showMidi = false;
   @property({ type: String }) public playbackState: PlaybackState = 'stopped';
   @state() public audioLevel = 0;
+  @state() public frequencyData: Uint8Array = new Uint8Array();
   @state() private midiInputIds: string[] = [];
   @state() private activeMidiInputId: string | null = null;
+  @state() private activeMidiChannel: number | 'all' = 'all';
 
   @property({ type: Object })
   private filteredPrompts = new Set<string>();
@@ -169,7 +186,7 @@ export class PromptDjMidi extends LitElement {
       const inputIds = await this.midiDispatcher.getMidiAccess();
       this.midiInputIds = inputIds;
       this.activeMidiInputId = this.midiDispatcher.activeMidiInputId;
-    } catch (e) {
+    } catch (e: any) {
       this.showMidi = false;
       this.dispatchEvent(new CustomEvent('error', {detail: e.message}));
     }
@@ -180,6 +197,17 @@ export class PromptDjMidi extends LitElement {
     const newMidiId = selectElement.value;
     this.activeMidiInputId = newMidiId;
     this.midiDispatcher.activeMidiInputId = newMidiId;
+  }
+
+  private handleMidiChannelChange(event: Event) {
+    const selectElement = event.target as HTMLSelectElement;
+    const value = selectElement.value;
+    if (value === 'all') {
+      this.activeMidiChannel = 'all';
+    } else {
+      this.activeMidiChannel = parseInt(value, 10);
+    }
+    this.midiDispatcher.activeMidiChannel = this.activeMidiChannel;
   }
 
   private playPause() {
@@ -209,14 +237,33 @@ export class PromptDjMidi extends LitElement {
         ? this.midiInputIds.map(
           (id) =>
             html`<option value=${id}>
-                    ${this.midiDispatcher.getDeviceName(id)}
+                    ${this.midiDispatcher.getDeviceName(id)}${id === this.activeMidiInputId ? ' (Active)' : ''}
                   </option>`,
         )
         : html`<option value="">No devices found</option>`}
         </select>
+        <select
+          @change=${this.handleMidiChannelChange}
+          .value=${String(this.activeMidiChannel)}
+          style=${this.showMidi ? '' : 'visibility: hidden'}>
+          <option value="all">All Channels</option>
+          ${Array.from({ length: 16 }, (_, i) => i + 1).map(
+            (channel) => html`<option value=${channel}>Ch. ${channel}</option>`,
+          )}
+        </select>
       </div>
       <div id="grid">${this.renderPrompts()}</div>
-      <play-pause-button .playbackState=${this.playbackState} @click=${this.playPause}></play-pause-button>`;
+      <div id="visualizer-container">
+        <audio-visualizer
+          .audioLevel=${this.audioLevel}
+          .frequencyData=${this.frequencyData}
+        ></audio-visualizer>
+        <play-pause-button
+          .playbackState=${this.playbackState}
+          @click=${this.playPause}
+        ></play-pause-button>
+      </div>
+    `;
   }
 
   private renderPrompts() {

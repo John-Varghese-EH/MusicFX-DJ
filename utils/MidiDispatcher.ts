@@ -8,6 +8,7 @@ import type { ControlChange } from '../types';
 export class MidiDispatcher extends EventTarget {
   private access: MIDIAccess | null = null;
   activeMidiInputId: string | null = null;
+  activeMidiChannel: number | 'all' = 'all';
 
   async getMidiAccess(): Promise<string[]> {
 
@@ -49,6 +50,10 @@ export class MidiDispatcher extends EventTarget {
 
         const isControlChange = messageType === 0xb0;
         if (!isControlChange) return;
+
+        if (this.activeMidiChannel !== 'all' && (channel + 1) !== this.activeMidiChannel) {
+          return;
+        }
 
         const detail: ControlChange = { cc: data[1], value: data[2], channel };
         this.dispatchEvent(

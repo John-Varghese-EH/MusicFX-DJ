@@ -22,6 +22,11 @@ export class PromptController extends LitElement {
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      border-radius: 1vmin;
+      transition: box-shadow 0.3s ease;
+    }
+    .prompt.learn-mode {
+      animation: pulse-orange 1.5s infinite ease-in-out;
     }
     weight-knob {
       width: 70%;
@@ -76,6 +81,17 @@ export class PromptController extends LitElement {
       #text {
         background: #da2000;
         z-index: 1;
+      }
+    }
+    @keyframes pulse-orange {
+      0% {
+        box-shadow: 0 0 0 0 rgba(255, 165, 0, 0.5);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(255, 165, 0, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(255, 165, 0, 0);
       }
     }
     @media only screen and (max-width: 600px) {
@@ -137,7 +153,7 @@ export class PromptController extends LitElement {
     this.lastValidText = this.text;
   }
 
-  update(changedProperties: Map<string, unknown>) {
+  override update(changedProperties: Map<string, unknown>) {
     if (changedProperties.has('showCC') && !this.showCC) {
       this.learnMode = false;
     }
@@ -240,4 +256,4 @@ declare global {
   interface HTMLElementTagNameMap {
     'prompt-controller': PromptController;
   }
-} 
+}

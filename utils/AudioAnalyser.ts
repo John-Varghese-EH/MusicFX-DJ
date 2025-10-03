@@ -2,7 +2,7 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-/** Simple class for getting the current audio level. */
+/** Simple class for getting the current audio level and frequency data. */
 export class AudioAnalyser extends EventTarget {
   readonly node: AnalyserNode;
   private readonly freqData: Uint8Array;
@@ -10,21 +10,26 @@ export class AudioAnalyser extends EventTarget {
   constructor(context: AudioContext) {
     super();
     this.node = context.createAnalyser();
-    this.node.smoothingTimeConstant = 0;
+    this.node.fftSize = 256; // More bins for visualization
+    this.node.smoothingTimeConstant = 0.3; // Smoother visualization
     this.freqData = new Uint8Array(this.node.frequencyBinCount);
     this.loop = this.loop.bind(this);
   }
-  getCurrentLevel() {
+  
+  private getData() {
     this.node.getByteFrequencyData(this.freqData);
-    const avg = this.freqData.reduce((a, b) => a + b, 0) / this.freqData.length;
-    return avg / 0xff;
+    const level = this.freqData.reduce((a, b) => a + b, 0) / this.freqData.length / 0xff;
+    return { level, frequencyData: this.freqData };
   }
+
   loop() {
     this.rafId = requestAnimationFrame(this.loop);
-    const level = this.getCurrentLevel();
-    this.dispatchEvent(new CustomEvent('audio-level-changed', { detail: level }));
+    const { level, frequencyData } = this.getData();
+    this.dispatchEvent(new CustomEvent('audio-data-changed', { detail: { level, frequencyData } }));
   }
+
   start = this.loop;
+  
   stop() {
     if (this.rafId) cancelAnimationFrame(this.rafId);
   }
