@@ -25,6 +25,8 @@ export class LiveMusicHelper extends EventTarget {
   public extraDestination: AudioNode | null = null;
 
   private outputNode: GainNode;
+  private masterVolumeNode: GainNode;
+  private masterVolume = 1.0;
   private playbackState: PlaybackState = 'stopped';
 
   private prompts: Map<string, Prompt>;
@@ -35,7 +37,15 @@ export class LiveMusicHelper extends EventTarget {
     this.model = model;
     this.prompts = new Map();
     this.audioContext = new AudioContext({ sampleRate: 48000 });
-    this.outputNode = this.audioContext.createGain();
+    
+    // Create and connect audio graph
+    this.outputNode = this.audioContext.createGain(); // For play/pause fades
+    this.masterVolumeNode = this.audioContext.createGain(); // For master volume
+    this.masterVolume = 1.0; // Corresponds to initial prompt weight of 1.0
+    this.masterVolumeNode.gain.value = this.masterVolume / 2; // Weight is 0-2, gain is 0-1
+
+    this.outputNode.connect(this.masterVolumeNode);
+    this.masterVolumeNode.connect(this.audioContext.destination);
   }
 
   private getSession(): Promise<LiveMusicSession> {
@@ -108,12 +118,21 @@ export class LiveMusicHelper extends EventTarget {
   public get activePrompts() {
     return Array.from(this.prompts.values())
       .filter((p) => {
-        return !this.filteredPrompts.has(p.text) && p.weight !== 0;
+        return p.text.toLowerCase() !== 'volume' && !this.filteredPrompts.has(p.text) && p.weight !== 0;
       })
   }
 
   public readonly setWeightedPrompts = throttle(async (prompts: Map<string, Prompt>) => {
     this.prompts = prompts;
+
+    // Handle master volume
+    const volumePrompt = Array.from(this.prompts.values()).find(p => p.text.toLowerCase() === 'volume');
+    if (volumePrompt) {
+        // Knob weight is 0-2, gain should be 0-1
+        this.masterVolume = volumePrompt.weight; 
+        const gainValue = this.masterVolume / 2;
+        this.masterVolumeNode.gain.linearRampToValueAtTime(gainValue, this.audioContext.currentTime + 0.05);
+    }
 
     if (this.activePrompts.length === 0) {
       this.dispatchEvent(new CustomEvent('error', { detail: 'There needs to be one active prompt to play.' }));
@@ -141,8 +160,7 @@ export class LiveMusicHelper extends EventTarget {
     await this.setWeightedPrompts(this.prompts);
     this.audioContext.resume();
     this.session.play();
-    this.outputNode.connect(this.audioContext.destination);
-    if (this.extraDestination) this.outputNode.connect(this.extraDestination);
+    if (this.extraDestination) this.masterVolumeNode.connect(this.extraDestination);
     this.outputNode.gain.setValueAtTime(0, this.audioContext.currentTime);
     this.outputNode.gain.linearRampToValueAtTime(1, this.audioContext.currentTime + 0.1);
   }
@@ -150,17 +168,16 @@ export class LiveMusicHelper extends EventTarget {
   public pause() {
     if (this.session) this.session.pause();
     this.setPlaybackState('paused');
-    this.outputNode.gain.setValueAtTime(1, this.audioContext.currentTime);
+    this.outputNode.gain.setValueAtTime(this.outputNode.gain.value, this.audioContext.currentTime);
     this.outputNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.1);
     this.nextStartTime = 0;
-    this.outputNode = this.audioContext.createGain();
   }
 
   public stop() {
     if (this.session) this.session.stop();
     this.setPlaybackState('stopped');
-    this.outputNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-    this.outputNode.gain.linearRampToValueAtTime(1, this.audioContext.currentTime + 0.1);
+    this.outputNode.gain.setValueAtTime(this.outputNode.gain.value, this.audioContext.currentTime);
+    this.outputNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + 0.1);
     this.nextStartTime = 0;
     this.session = null;
     this.sessionPromise = null;

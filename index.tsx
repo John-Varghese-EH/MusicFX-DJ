@@ -73,16 +73,17 @@ function main() {
 }
 
 function buildInitialPrompts() {
+  const prompts = new Map<string, Prompt>();
+
+  // Style prompts
   // Pick 3 random prompts to start at weight = 1
-  const startOn = [...DEFAULT_PROMPTS]
+  const startOn = [...DEFAULT_STYLE_PROMPTS]
     .sort(() => Math.random() - 0.5)
     .slice(0, 3);
 
-  const prompts = new Map<string, Prompt>();
-
-  for (let i = 0; i < DEFAULT_PROMPTS.length; i++) {
+  for (let i = 0; i < DEFAULT_STYLE_PROMPTS.length; i++) {
     const promptId = `prompt-${i}`;
-    const prompt = DEFAULT_PROMPTS[i];
+    const prompt = DEFAULT_STYLE_PROMPTS[i];
     const { text, color } = prompt;
     prompts.set(promptId, {
       promptId,
@@ -90,13 +91,35 @@ function buildInitialPrompts() {
       weight: startOn.includes(prompt) ? 1 : 0,
       cc: i,
       color,
+      type: 'style',
+    });
+  }
+  
+  // Global prompts
+  for (let i = 0; i < GLOBAL_PROMPTS.length; i++) {
+    const promptId = `prompt-global-${i}`;
+    const prompt = GLOBAL_PROMPTS[i];
+    const { text, color, weight, cc } = prompt;
+    prompts.set(promptId, {
+      promptId,
+      text,
+      weight: weight ?? 0,
+      cc,
+      color,
+      type: 'global',
     });
   }
 
   return prompts;
 }
 
-const DEFAULT_PROMPTS = [
+const GLOBAL_PROMPTS = [
+  { color: '#ff4f4f', text: 'Tempo', cc: 16, weight: 0.5 },
+  { color: '#4f8eff', text: 'Complexity', cc: 17, weight: 0.5 },
+  { color: '#4fe8ff', text: 'Volume', cc: 18, weight: 1.0 },
+];
+
+const DEFAULT_STYLE_PROMPTS = [
   { color: '#9900ff', text: 'Bossa Nova' },
   { color: '#5200ff', text: 'Chillwave' },
   { color: '#ff25f6', text: 'Drum and Bass' },

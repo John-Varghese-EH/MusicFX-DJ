@@ -8,6 +8,7 @@ import { customElement, property } from 'lit/decorators.js';
 const BAR_COUNT = 64; // Number of frequency bars to display
 
 @customElement('audio-visualizer')
+// FIX: The class must extend LitElement to be a custom element.
 export class AudioVisualizer extends LitElement {
   static override styles = css`
     :host {

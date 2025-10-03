@@ -7,6 +7,7 @@ import { customElement, property } from 'lit/decorators.js';
 import type { PlaybackState } from '../types';
 
 @customElement('play-pause-button')
+// FIX: The class must extend LitElement to be a custom element.
 export class PlayPauseButton extends LitElement {
 
   @property({ type: String }) playbackState: PlaybackState = 'stopped';
@@ -54,12 +55,12 @@ export class PlayPauseButton extends LitElement {
     return html` <svg
       width="140"
       height="140"
-      viewBox="0 -10 140 150"
+      viewBox="0 0 140 140"
       fill="none"
       xmlns="http://www.w3.org/2000/svg">
       <rect
         x="22"
-        y="6"
+        y="22"
         width="96"
         height="96"
         rx="48"
@@ -67,7 +68,7 @@ export class PlayPauseButton extends LitElement {
         fill-opacity="0.05" />
       <rect
         x="23.5"
-        y="7.5"
+        y="23.5"
         width="93"
         height="93"
         rx="46.5"
@@ -77,7 +78,7 @@ export class PlayPauseButton extends LitElement {
       <g filter="url(#filter0_ddi_1048_7373)">
         <rect
           x="25"
-          y="9"
+          y="25"
           width="90"
           height="90"
           rx="45"
@@ -85,7 +86,9 @@ export class PlayPauseButton extends LitElement {
           fill-opacity="0.05"
           shape-rendering="crispEdges" />
       </g>
-      ${this.renderIcon()}
+      <g transform="translate(0, 16)">
+        ${this.renderIcon()}
+      </g>
       <defs>
         <filter
           id="filter0_ddi_1048_7373"

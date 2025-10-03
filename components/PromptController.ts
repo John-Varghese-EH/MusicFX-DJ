@@ -14,6 +14,7 @@ import type { Prompt, ControlChange } from '../types';
 
 /** A single prompt input associated with a MIDI CC. */
 @customElement('prompt-controller')
+// FIX: The class must extend LitElement to be a custom element.
 export class PromptController extends LitElement {
   static override styles = css`
     .prompt {
@@ -109,6 +110,7 @@ export class PromptController extends LitElement {
   @property({ type: Number }) weight = 0;
   @property({ type: String }) color = '';
   @property({ type: Boolean, reflect: true }) filtered = false;
+  @property({ type: String }) type: 'style' | 'global' = 'style';
 
   @property({ type: Number }) cc = 0;
   @property({ type: Number }) channel = 0; // Not currently used
@@ -172,6 +174,7 @@ export class PromptController extends LitElement {
           weight: this.weight,
           cc: this.cc,
           color: this.color,
+          type: this.type,
         },
       }),
     );
